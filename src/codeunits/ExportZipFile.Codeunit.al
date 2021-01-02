@@ -5,8 +5,8 @@ codeunit 50102 "SDH Export Zip File"
     var
         CustLedgerEntry: Record "Cust. Ledger Entry";
         DataCompression: Codeunit "Data Compression";
-        ZipFileName: Text;
         ZipTempBlob: Codeunit "Temp Blob";
+        ZipFileName: Text;
         ZipOutStream: OutStream;
         ZipInstream: InStream;
     begin
@@ -39,29 +39,22 @@ codeunit 50102 "SDH Export Zip File"
 
     local procedure GenerateInvoicePDF(Var CustLedgerEntry: Record "Cust. Ledger Entry"; var DataCompression: Codeunit "Data Compression")
     var
+        SalesInvoice: Record "Sales Invoice Header";
+        TempBlob: Codeunit "Temp Blob";
+        SalesInvRecRef: RecordRef;
         Istream: InStream;
+        Ostream: OutStream;
         FileName: Text;
     begin
         If CustLedgerEntry.Findset() then
             repeat
-                GetReportOutput(CustLedgerEntry, Istream, FileName);
+                TempBlob.CreateOutStream(Ostream);
+                SalesInvoice.SetFilter("No.", CustLedgerEntry."Document No.");
+                SalesInvRecRef.GetTable(SalesInvoice);
+                Report.SaveAs(Report::"Sales Invoice NA", '', ReportFormat::Pdf, Ostream, SalesInvRecRef);
+                TempBlob.CreateInStream(Istream);
+                FileName := CustLedgerEntry."Document No." + '.pdf';
                 DataCompression.AddEntry(Istream, FileName);
             until (CustLedgerEntry.Next() = 0);
     end;
-
-    local procedure GetReportOutput(var CustLedgerEntry: Record "Cust. Ledger Entry"; var IStream: Instream; var FileName: Text)
-    var
-        TempBlob: Codeunit "Temp Blob";
-        Ostream: OutStream;
-        SalesInvoice: Record "Sales Invoice Header";
-        SalesInvRecRef: RecordRef;
-    begin
-        TempBlob.CreateOutStream(Ostream);
-        SalesInvoice.SetFilter("No.", CustLedgerEntry."Document No.");
-        SalesInvRecRef.GetTable(SalesInvoice);
-        Report.SaveAs(Report::"Sales Invoice NA", '', ReportFormat::Pdf, Ostream, SalesInvRecRef);
-        TempBlob.CreateInStream(Istream);
-        FileName := CustLedgerEntry."Document No." + '.pdf';
-    end;
-
 }
